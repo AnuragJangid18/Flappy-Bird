@@ -1,0 +1,131 @@
+        :root {
+            --color-white: rgba(255, 255, 255, 1);
+            --color-black: rgba(0, 0, 0, 1);
+            --color-cream-50: rgba(252, 252, 249, 1);
+            --color-gray-200: rgba(245, 245, 245, 1);
+            --color-slate-900: rgba(19, 52, 59, 1);
+            --color-teal-300: rgba(50, 184, 198, 1);
+            --color-teal-500: rgba(33, 128, 141, 1);
+            --color-orange-500: rgba(168, 75, 47, 1);
+            --color-charcoal-700: rgba(31, 33, 33, 1);
+            --color-charcoal-800: rgba(38, 40, 40, 1);
+            
+            --color-background: var(--color-cream-50);
+            --color-text: var(--color-slate-900);
+            --color-primary: var(--color-teal-500);
+            --color-surface: var(--color-white);
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --color-background: var(--color-charcoal-700);
+                --color-text: var(--color-gray-200);
+                --color-primary: var(--color-teal-300);
+                --color-surface: var(--color-charcoal-800);
+            }
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: var(--color-background);
+            color: var(--color-text);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .game-container {
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        #gameCanvas {
+            border: 3px solid var(--color-primary);
+            border-radius: 12px;
+            background: linear-gradient(to bottom, #87CEEB 0%, #E0F6FF 100%);
+            display: block;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .controls {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .btn {
+            background: var(--color-primary);
+            color: var(--color-white);
+            border: none;
+            padding: 12px 24px;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin: 0 8px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(33, 128, 141, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .score-display {
+            text-align: center;
+            font-size: 1.2rem;
+            margin-top: 16px;
+            font-weight: 600;
+        }
+
+        .instructions {
+            text-align: center;
+            margin-top: 16px;
+            color: var(--color-text);
+            opacity: 0.8;
+        }
+
+        .game-over {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--color-surface);
+            padding: 30px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            display: none;
+        }
+
+        .game-over.show {
+            display: block;
+        }
+
+        .game-over h2 {
+            color: var(--color-orange-500);
+            margin-bottom: 16px;
+        }
+
+        .game-over p {
+            margin: 8px 0;
+            font-size: 1.1rem;
+        }
