@@ -2,7 +2,7 @@
 
 A browser-based clone of the classic Flappy Bird game built with pure HTML5 Canvas and JavaScript. Features smooth animations, responsive controls, and a clean modern design with light/dark theme support.
 
-![Game Screenshot](screenshot.png) <!-- Add your own screenshot -->
+![Game Screenshot](game.png) <!-- Add your own screenshot -->
 
 ## 🎮 Game Overview
 
