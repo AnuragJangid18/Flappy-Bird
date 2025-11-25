@@ -2,7 +2,11 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#21808d">
     <link rel="stylesheet" href="styles.css">
     <title>Flappy Bird Game</title>
     
@@ -11,18 +15,34 @@
     <h1>🐦 Flappy Bird</h1>
     
     <div class="game-container">
-        <canvas id="gameCanvas" width="400" height="600"></canvas>
+        <canvas id="gameCanvas" width="400" height="600" aria-label="Flappy Bird game canvas" role="img"></canvas>
         
         <div class="game-over" id="gameOver">
             <h2>Game Over!</h2>
             <p>Score: <span id="finalScore">0</span></p>
             <p>Best: <span id="bestScore">0</span></p>
-            <button class="btn" onclick="restartGame()">Play Again</button>
+            <button class="btn" onclick="restartGame()" aria-label="Restart the game">Play Again</button>
+        </div>
+        
+        <div class="pause-overlay" id="pauseOverlay">
+            <h2>⏸️ Paused</h2>
+            <p>Press ESC or SPACE to resume</p>
+            <button class="btn" onclick="resumeGame()" aria-label="Resume the game">Resume</button>
+        </div>
+    </div>
+
+    <div class="difficulty-selector">
+        <label>Difficulty:</label>
+        <div class="difficulty-buttons">
+            <button class="difficulty-btn" data-difficulty="easy" onclick="setDifficulty('easy')" aria-label="Easy mode">Easy</button>
+            <button class="difficulty-btn active" data-difficulty="normal" onclick="setDifficulty('normal')" aria-label="Normal mode">Normal</button>
+            <button class="difficulty-btn" data-difficulty="hard" onclick="setDifficulty('hard')" aria-label="Hard mode">Hard</button>
+            <button class="difficulty-btn" data-difficulty="endless" onclick="setDifficulty('endless')" aria-label="Endless mode">Endless</button>
         </div>
     </div>
 
     <div class="controls">
-        <button class="btn" onclick="startGame()">Start Game</button>
+        <button class="btn" onclick="startGame()" aria-label="Start a new game">Start Game</button>
     </div>
 
     <div class="score-display">
@@ -30,7 +50,8 @@
     </div>
 
     <div class="instructions">
-        Press SPACE or Click to Flap
+        <span class="desktop-only">Press SPACE or Click to Flap | ESC to Pause</span>
+        <span class="mobile-only">Tap anywhere to Flap</span>
     </div>
 
     <script src="app.js"></script>

@@ -1,11 +1,175 @@
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         
+        // Mobile detection
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        
+        // Responsive canvas setup
+        function setupCanvas() {
+            const container = canvas.parentElement;
+            const maxWidth = Math.min(400, window.innerWidth - 40);
+            const aspectRatio = 600 / 400;
+            const width = maxWidth;
+            const height = width * aspectRatio;
+            
+            canvas.width = width;
+            canvas.height = height;
+            canvas.style.width = width + 'px';
+            canvas.style.height = height + 'px';
+        }
+        
+        setupCanvas();
+        
+        // Canvas dimensions
+        let CANVAS_WIDTH = canvas.width;
+        let CANVAS_HEIGHT = canvas.height;
+        const GROUND_HEIGHT = 50;
+        let GROUND_Y = CANVAS_HEIGHT - GROUND_HEIGHT;
+        
+        // Handle window resize
+        let resizeTimeout;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                if (!gameStarted) {
+                    setupCanvas();
+                    CANVAS_WIDTH = canvas.width;
+                    CANVAS_HEIGHT = canvas.height;
+                    GROUND_Y = CANVAS_HEIGHT - GROUND_HEIGHT;
+                    drawBackground();
+                    drawBird();
+                }
+            }, 250);
+        });
+        
+        // Difficulty configurations
+        const DIFFICULTY_SETTINGS = {
+            easy: {
+                name: 'Easy',
+                gravity: 0.16,
+                jump: -3.8,
+                basePipeSpeed: 2.3,
+                pipeWidth: 60,
+                pipeGap: 165,
+                spawnInterval: 1450,
+                hitboxPadding: 7,
+                progressiveIncrease: true
+            },
+            normal: {
+                name: 'Normal',
+                gravity: 0.20,
+                jump: -4.2,
+                basePipeSpeed: 2.8,
+                pipeWidth: 60,
+                pipeGap: 140,
+                spawnInterval: 1300,
+                hitboxPadding: 5,
+                progressiveIncrease: true
+            },
+            hard: {
+                name: 'Hard',
+                gravity: 0.24,
+                jump: -4.8,
+                basePipeSpeed: 3.5,
+                pipeWidth: 60,
+                pipeGap: 115,
+                spawnInterval: 1100,
+                hitboxPadding: 3,
+                progressiveIncrease: true
+            },
+            endless: {
+                name: 'Endless',
+                gravity: 0.20,
+                jump: -4.2,
+                basePipeSpeed: 2.8,
+                pipeWidth: 60,
+                pipeGap: 140,
+                spawnInterval: 1300,
+                hitboxPadding: 5,
+                progressiveIncrease: false
+            }
+        };
+        
+        let currentDifficulty = 'normal';
+        let CONFIG = { ...DIFFICULTY_SETTINGS[currentDifficulty] };
+        
+        // Cache DOM elements
+        const DOM = {
+            score: document.getElementById('score'),
+            best: document.getElementById('best'),
+            gameOver: document.getElementById('gameOver'),
+            pauseOverlay: document.getElementById('pauseOverlay'),
+            finalScore: document.getElementById('finalScore'),
+            bestScore: document.getElementById('bestScore')
+        };
+        
         let gameStarted = false;
         let gameOver = false;
+        let gamePaused = false;
         let score = 0;
-        let bestScore = 0;
-        let frameCount = 0;
+        let bestScore = loadBestScore();
+        let lastTime = 0;
+        let lastPipeTime = 0;
+        let pausedTime = 0;
+        let touchIndicator = { active: false, x: 0, y: 0, opacity: 1, startTime: 0 };
+
+        // Difficulty management
+        function setDifficulty(difficulty) {
+            if (gameStarted && !gameOver) return; // Can't change during gameplay
+            
+            currentDifficulty = difficulty;
+            CONFIG = { ...DIFFICULTY_SETTINGS[difficulty] };
+            
+            // Update UI
+            document.querySelectorAll('.difficulty-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector(`[data-difficulty="${difficulty}"]`).classList.add('active');
+            
+            // Save preference
+            try {
+                localStorage.setItem('flappyBird_difficulty', difficulty);
+            } catch (e) {
+                console.warn('Could not save difficulty preference:', e);
+            }
+        }
+        
+        function loadDifficulty() {
+            try {
+                const saved = localStorage.getItem('flappyBird_difficulty');
+                return saved && DIFFICULTY_SETTINGS[saved] ? saved : 'normal';
+            } catch (e) {
+                return 'normal';
+            }
+        }
+
+        // Storage helper functions
+        function loadBestScore() {
+            try {
+                const saved = localStorage.getItem('flappyBird_bestScore');
+                return saved ? parseInt(saved, 10) : 0;
+            } catch (e) {
+                console.warn('localStorage not available:', e);
+                return 0;
+            }
+        }
+
+        function saveBestScore(score) {
+            try {
+                localStorage.setItem('flappyBird_bestScore', score.toString());
+            } catch (e) {
+                console.warn('Could not save to localStorage:', e);
+            }
+        }
+
+        function incrementGamesPlayed() {
+            try {
+                const played = parseInt(localStorage.getItem('flappyBird_gamesPlayed') || '0', 10);
+                localStorage.setItem('flappyBird_gamesPlayed', (played + 1).toString());
+            } catch (e) {
+                console.warn('Could not save games played:', e);
+            }
+        }
 
         // Bird properties
         const bird = {
@@ -14,24 +178,52 @@
             width: 34,
             height: 24,
             velocity: 0,
-            gravity: 0.12,
-            jump: -3.5,
             rotation: 0
         };
 
         // Pipe properties
         const pipes = [];
-        const pipeWidth = 60;
-        const pipeGap = 150;
-        const pipeSpeed = 2.5;
+
+        function drawTouchIndicator() {
+            if (!touchIndicator.active) return;
+            
+            const elapsed = performance.now() - touchIndicator.startTime;
+            const maxDuration = 300; // ms
+            
+            if (elapsed > maxDuration) {
+                touchIndicator.active = false;
+                return;
+            }
+            
+            const progress = elapsed / maxDuration;
+            const radius = 10 + progress * 20;
+            touchIndicator.opacity = 1 - progress;
+            
+            ctx.save();
+            ctx.globalAlpha = touchIndicator.opacity;
+            ctx.strokeStyle = '#FFD700';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(touchIndicator.x, touchIndicator.y, radius, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        function showTouchIndicator(x, y) {
+            touchIndicator.active = true;
+            touchIndicator.x = x;
+            touchIndicator.y = y;
+            touchIndicator.startTime = performance.now();
+        }
 
         function drawBird() {
             ctx.save();
             ctx.translate(bird.x + bird.width / 2, bird.y + bird.height / 2);
             
-            // Rotate based on velocity
-            const rotation = Math.min(Math.max(bird.velocity * 3, -30), 90) * Math.PI / 180;
-            ctx.rotate(rotation);
+            // Smooth rotation based on velocity
+            const targetDeg = Math.max(Math.min(bird.velocity * 10, 80), -25);
+            bird.rotation = bird.rotation + (targetDeg - bird.rotation) * 0.12;
+            ctx.rotate(bird.rotation * Math.PI / 180);
             
             // Draw bird body
             ctx.fillStyle = '#FFD700';
@@ -66,59 +258,67 @@
         function drawPipe(pipe) {
             // Top pipe
             ctx.fillStyle = '#228B22';
-            ctx.fillRect(pipe.x, 0, pipeWidth, pipe.top);
+            ctx.fillRect(pipe.x, 0, CONFIG.pipeWidth, pipe.top);
             ctx.strokeStyle = '#1a6b1a';
             ctx.lineWidth = 3;
-            ctx.strokeRect(pipe.x, 0, pipeWidth, pipe.top);
+            ctx.strokeRect(pipe.x, 0, CONFIG.pipeWidth, pipe.top);
             
             // Pipe cap top
-            ctx.fillRect(pipe.x - 5, pipe.top - 25, pipeWidth + 10, 25);
-            ctx.strokeRect(pipe.x - 5, pipe.top - 25, pipeWidth + 10, 25);
+            ctx.fillRect(pipe.x - 5, pipe.top - 25, CONFIG.pipeWidth + 10, 25);
+            ctx.strokeRect(pipe.x - 5, pipe.top - 25, CONFIG.pipeWidth + 10, 25);
             
             // Bottom pipe
-            const bottomStart = pipe.top + pipeGap;
-            ctx.fillRect(pipe.x, bottomStart, pipeWidth, canvas.height - bottomStart);
-            ctx.strokeRect(pipe.x, bottomStart, pipeWidth, canvas.height - bottomStart);
+            const bottomStart = pipe.top + pipe.gap;
+            ctx.fillRect(pipe.x, bottomStart, CONFIG.pipeWidth, CANVAS_HEIGHT - bottomStart);
+            ctx.strokeRect(pipe.x, bottomStart, CONFIG.pipeWidth, CANVAS_HEIGHT - bottomStart);
             
             // Pipe cap bottom
-            ctx.fillRect(pipe.x - 5, bottomStart, pipeWidth + 10, 25);
-            ctx.strokeRect(pipe.x - 5, bottomStart, pipeWidth + 10, 25);
+            ctx.fillRect(pipe.x - 5, bottomStart, CONFIG.pipeWidth + 10, 25);
+            ctx.strokeRect(pipe.x - 5, bottomStart, CONFIG.pipeWidth + 10, 25);
         }
 
         function drawBackground() {
             // Sky gradient
-            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            const gradient = ctx.createLinearGradient(0, 0, 0, CANVAS_HEIGHT);
             gradient.addColorStop(0, '#87CEEB');
             gradient.addColorStop(1, '#E0F6FF');
             ctx.fillStyle = gradient;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
             
             // Ground
             ctx.fillStyle = '#DEB887';
-            ctx.fillRect(0, canvas.height - 50, canvas.width, 50);
+            ctx.fillRect(0, GROUND_Y, CANVAS_WIDTH, GROUND_HEIGHT);
             ctx.fillStyle = '#8B7355';
-            ctx.fillRect(0, canvas.height - 50, canvas.width, 5);
+            ctx.fillRect(0, GROUND_Y, CANVAS_WIDTH, 5);
         }
 
         function createPipe() {
+            // Progressive difficulty - gap decreases as score increases (if enabled)
+            let gap = CONFIG.pipeGap;
+            if (CONFIG.progressiveIncrease) {
+                gap = Math.max(110, CONFIG.pipeGap - Math.floor(score / 5) * 5);
+            }
+            
             const minTop = 50;
-            const maxTop = canvas.height - pipeGap - 100;
+            const maxTop = CANVAS_HEIGHT - gap - 100;
             const top = Math.random() * (maxTop - minTop) + minTop;
             
             pipes.push({
-                x: canvas.width,
+                x: CANVAS_WIDTH,
                 top: top,
+                gap: gap,
                 scored: false
             });
         }
 
-        function updateBird() {
-            bird.velocity += bird.gravity;
-            bird.y += bird.velocity;
+        function updateBird(delta) {
+            const dt = delta / 16; // normalize to ~60fps baseline
+            bird.velocity += CONFIG.gravity * dt;
+            bird.y += bird.velocity * dt;
             
             // Ground collision
-            if (bird.y + bird.height >= canvas.height - 50) {
-                bird.y = canvas.height - 50 - bird.height;
+            if (bird.y + bird.height >= GROUND_Y) {
+                bird.y = GROUND_Y - bird.height;
                 endGame();
             }
             
@@ -129,48 +329,59 @@
             }
         }
 
-        function updatePipes() {
-            if (frameCount % 90 === 0) {
+        function updatePipes(delta, timestamp) {
+            // Time-based pipe spawning
+            if (timestamp - lastPipeTime > CONFIG.spawnInterval) {
                 createPipe();
+                lastPipeTime = timestamp;
             }
             
+            // Progressive difficulty - speed increases with score (if enabled)
+            let speed = CONFIG.basePipeSpeed;
+            if (CONFIG.progressiveIncrease) {
+                speed = CONFIG.basePipeSpeed + Math.min(3, score * 0.08);
+            }
+            const move = speed * (delta / 16);
+            
             for (let i = pipes.length - 1; i >= 0; i--) {
-                pipes[i].x -= pipeSpeed;
+                pipes[i].x -= move;
                 
-                // Check collision
+                // Forgiving hitbox collision detection
+                const padding = CONFIG.hitboxPadding;
                 if (
-                    bird.x + bird.width > pipes[i].x &&
-                    bird.x < pipes[i].x + pipeWidth &&
-                    (bird.y < pipes[i].top || bird.y + bird.height > pipes[i].top + pipeGap)
+                    bird.x + padding + bird.width - 2 * padding > pipes[i].x &&
+                    bird.x + padding < pipes[i].x + CONFIG.pipeWidth &&
+                    (bird.y + padding < pipes[i].top || bird.y + bird.height - padding > pipes[i].top + pipes[i].gap)
                 ) {
                     endGame();
                 }
                 
                 // Score point
-                if (!pipes[i].scored && pipes[i].x + pipeWidth < bird.x) {
+                if (!pipes[i].scored && pipes[i].x + CONFIG.pipeWidth < bird.x) {
                     pipes[i].scored = true;
                     score++;
                     updateScore();
                 }
                 
                 // Remove off-screen pipes
-                if (pipes[i].x + pipeWidth < 0) {
+                if (pipes[i].x + CONFIG.pipeWidth < 0) {
                     pipes.splice(i, 1);
                 }
             }
         }
 
         function updateScore() {
-            document.getElementById('score').textContent = score;
+            DOM.score.textContent = score;
             if (score > bestScore) {
                 bestScore = score;
-                document.getElementById('best').textContent = bestScore;
+                DOM.best.textContent = bestScore;
+                saveBestScore(bestScore);
             }
         }
 
         function flap() {
             if (!gameStarted || gameOver) return;
-            bird.velocity = bird.jump;
+            bird.velocity = CONFIG.jump;
         }
 
         function startGame() {
@@ -178,15 +389,20 @@
             
             gameStarted = true;
             gameOver = false;
+            gamePaused = false;
             score = 0;
-            frameCount = 0;
+            lastTime = 0;
+            lastPipeTime = 0;
+            pausedTime = 0;
             bird.y = 250;
             bird.velocity = 0;
+            bird.rotation = 0;
             pipes.length = 0;
             
-            document.getElementById('gameOver').classList.remove('show');
+            DOM.gameOver.classList.remove('show');
+            DOM.pauseOverlay.classList.remove('show');
             updateScore();
-            gameLoop();
+            requestAnimationFrame(gameLoop);
         }
 
         function endGame() {
@@ -194,51 +410,125 @@
             gameOver = true;
             gameStarted = false;
             
-            document.getElementById('finalScore').textContent = score;
-            document.getElementById('bestScore').textContent = bestScore;
-            document.getElementById('gameOver').classList.add('show');
+            incrementGamesPlayed();
+            
+            DOM.finalScore.textContent = score;
+            DOM.bestScore.textContent = bestScore;
+            DOM.gameOver.classList.add('show');
         }
 
         function restartGame() {
             startGame();
         }
 
-        function gameLoop() {
-            if (!gameStarted || gameOver) return;
+        function pauseGame() {
+            if (!gameStarted || gameOver || gamePaused) return;
+            gamePaused = true;
+            pausedTime = performance.now();
+            DOM.pauseOverlay.classList.add('show');
+        }
+
+        function resumeGame() {
+            if (!gamePaused) return;
+            gamePaused = false;
+            const pauseDuration = performance.now() - pausedTime;
+            lastTime += pauseDuration;
+            lastPipeTime += pauseDuration;
+            DOM.pauseOverlay.classList.remove('show');
+            requestAnimationFrame(gameLoop);
+        }
+
+        function gameLoop(timestamp) {
+            if (!gameStarted || gameOver || gamePaused) return;
             
-            frameCount++;
+            // Initialize timing on first frame
+            if (!lastTime) {
+                lastTime = timestamp;
+                lastPipeTime = timestamp;
+            }
+            
+            const delta = timestamp - lastTime;
+            lastTime = timestamp;
             
             drawBackground();
             
-            updateBird();
-            updatePipes();
+            updateBird(delta);
+            updatePipes(delta, timestamp);
             
             pipes.forEach(drawPipe);
             drawBird();
+            
+            if (isMobile) {
+                drawTouchIndicator();
+            }
             
             requestAnimationFrame(gameLoop);
         }
 
         // Event listeners
         document.addEventListener('keydown', (e) => {
-            if (e.code === 'Space') {
+            if (e.code === 'Space' || e.key === ' ') {
                 e.preventDefault();
                 if (!gameStarted) {
                     startGame();
+                } else if (gamePaused) {
+                    resumeGame();
                 } else {
                     flap();
+                }
+            } else if (e.code === 'Escape' || e.key === 'Escape') {
+                e.preventDefault();
+                if (gameStarted && !gameOver) {
+                    if (gamePaused) {
+                        resumeGame();
+                    } else {
+                        pauseGame();
+                    }
                 }
             }
         });
 
-        canvas.addEventListener('click', () => {
+        // Use pointer events for better touch support
+        canvas.addEventListener('pointerdown', (e) => {
+            e.preventDefault();
+            
+            // Show touch indicator on mobile
+            if (isMobile) {
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+                const x = (e.clientX - rect.left) * scaleX;
+                const y = (e.clientY - rect.top) * scaleY;
+                showTouchIndicator(x, y);
+            }
+            
             if (!gameStarted) {
                 startGame();
+            } else if (gamePaused) {
+                resumeGame();
             } else {
                 flap();
             }
         });
+        
+        // Prevent double-tap zoom on mobile
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+        }, { passive: false });
 
-        // Initial draw
+        // Pause game when window loses focus
+        window.addEventListener('blur', () => {
+            if (gameStarted && !gameOver && !gamePaused) {
+                pauseGame();
+            }
+        });
+
+        // Initial draw and setup
+        DOM.best.textContent = bestScore;
+        
+        // Load saved difficulty
+        const savedDifficulty = loadDifficulty();
+        setDifficulty(savedDifficulty);
+        
         drawBackground();
         drawBird();

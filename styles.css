@@ -41,12 +41,24 @@
             justify-content: center;
             min-height: 100vh;
             padding: 20px;
+            overflow-x: hidden;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
         }
 
         h1 {
             font-size: 2.5rem;
             margin-bottom: 20px;
             text-align: center;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 2rem;
+                margin-bottom: 15px;
+            }
         }
 
         .game-container {
@@ -60,11 +72,76 @@
             background: linear-gradient(to bottom, #87CEEB 0%, #E0F6FF 100%);
             display: block;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+            max-width: 100%;
+            height: auto;
+        }
+
+        .difficulty-selector {
+            text-align: center;
+            margin-top: 20px;
+            margin-bottom: 15px;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .difficulty-selector label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 10px;
+            font-size: 1rem;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .difficulty-buttons {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            flex-wrap: wrap;
+            padding: 0 10px;
+        }
+
+        .difficulty-btn {
+            background: var(--color-surface);
+            color: var(--color-text);
+            border: 2px solid var(--color-primary);
+            padding: 8px 16px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            min-height: 36px;
+            white-space: nowrap;
+        }
+
+        .difficulty-btn:hover {
+            background: var(--color-primary);
+            color: var(--color-white);
+            transform: translateY(-1px);
+        }
+
+        .difficulty-btn.active {
+            background: var(--color-primary);
+            color: var(--color-white);
+            box-shadow: 0 2px 8px rgba(33, 128, 141, 0.3);
+        }
+
+        .difficulty-btn:active {
+            transform: translateY(0);
         }
 
         .controls {
             text-align: center;
-            margin-top: 20px;
+            margin-top: 10px;
         }
 
         .btn {
@@ -78,6 +155,19 @@
             cursor: pointer;
             transition: all 0.2s;
             margin: 0 8px;
+            touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
+            min-width: 120px;
+            min-height: 44px;
+        }
+        
+        @media (max-width: 480px) {
+            .btn {
+                padding: 14px 28px;
+                font-size: 1.1rem;
+                min-height: 48px;
+            }
         }
 
         .btn:hover {
@@ -128,4 +218,218 @@
         .game-over p {
             margin: 8px 0;
             font-size: 1.1rem;
+        }
+
+        .pause-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--color-surface);
+            padding: 30px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            display: none;
+            backdrop-filter: blur(4px);
+        }
+
+        .pause-overlay.show {
+            display: block;
+        }
+
+        .pause-overlay h2 {
+            color: var(--color-primary);
+            margin-bottom: 16px;
+        }
+
+        .pause-overlay p {
+            margin: 8px 0;
+            font-size: 1rem;
+            opacity: 0.8;
+        }
+
+        /* Mobile-specific styles */
+        .desktop-only {
+            display: inline;
+        }
+
+        .mobile-only {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .desktop-only {
+                display: none;
+            }
+
+            .mobile-only {
+                display: inline;
+            }
+
+            body {
+                padding: 10px;
+                justify-content: flex-start;
+                padding-top: 20px;
+            }
+
+            .game-container {
+                margin-bottom: 15px;
+            }
+
+            .difficulty-selector {
+                margin-top: 15px;
+                margin-bottom: 12px;
+                padding: 0 5px;
+            }
+
+            .difficulty-selector label {
+                font-size: 0.95rem;
+                margin-bottom: 8px;
+            }
+
+            .difficulty-buttons {
+                gap: 8px;
+            }
+
+            .difficulty-btn {
+                padding: 10px 14px;
+                font-size: 0.9rem;
+                min-height: 44px;
+                flex: 1;
+                min-width: 70px;
+            }
+
+            .controls {
+                margin-top: 12px;
+            }
+
+            .score-display {
+                font-size: 1.1rem;
+                margin-top: 12px;
+            }
+
+            .instructions {
+                margin-top: 12px;
+                font-size: 0.9rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 5px;
+                padding-top: 10px;
+            }
+
+            h1 {
+                font-size: 1.8rem;
+                margin-bottom: 10px;
+            }
+
+            .game-container {
+                margin-bottom: 10px;
+            }
+
+            .difficulty-selector {
+                margin-top: 10px;
+                margin-bottom: 10px;
+                padding: 0 5px;
+            }
+
+            .difficulty-selector label {
+                font-size: 0.9rem;
+                margin-bottom: 8px;
+            }
+
+            .difficulty-buttons {
+                gap: 6px;
+                max-width: 100%;
+            }
+
+            .difficulty-btn {
+                padding: 11px 8px;
+                font-size: 0.85rem;
+                min-height: 48px;
+                flex: 1;
+                min-width: 65px;
+            }
+
+            .controls {
+                margin-top: 8px;
+            }
+
+            .score-display {
+                font-size: 1rem;
+                margin-top: 10px;
+            }
+
+            .instructions {
+                margin-top: 10px;
+                font-size: 0.85rem;
+            }
+
+            .game-over, .pause-overlay {
+                padding: 20px;
+                max-width: 90%;
+            }
+
+            .game-over h2, .pause-overlay h2 {
+                font-size: 1.5rem;
+            }
+
+            .game-over p, .pause-overlay p {
+                font-size: 0.95rem;
+            }
+        }
+
+        /* Extra small screens - optimize difficulty buttons */
+        @media (max-width: 380px) {
+            .difficulty-buttons {
+                gap: 5px;
+            }
+
+            .difficulty-btn {
+                padding: 12px 6px;
+                font-size: 0.75rem;
+                min-height: 48px;
+                min-width: 60px;
+            }
+
+            .difficulty-selector label {
+                font-size: 0.85rem;
+            }
+        }
+
+        /* Very narrow screens - stack buttons in pairs */
+        @media (max-width: 320px) {
+            .difficulty-buttons {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 8px;
+                max-width: 100%;
+            }
+
+            .difficulty-btn {
+                padding: 12px 10px;
+                font-size: 0.8rem;
+                min-height: 48px;
+                width: 100%;
+            }
+        }
+
+        /* Prevent text selection and improve touch */
+        * {
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
+        /* Allow selection for specific elements if needed */
+        input, textarea {
+            -webkit-user-select: text;
+            -moz-user-select: text;
+            -ms-user-select: text;
+            user-select: text;
         }
