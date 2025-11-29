@@ -53,7 +53,9 @@
                 pipeGap: 165,
                 spawnInterval: 1450,
                 hitboxPadding: 7,
-                progressiveIncrease: true
+                progressiveIncrease: true,
+                speedBoostAt50: 1.15,
+                speedBoostAt100: 1.35
             },
             normal: {
                 name: 'Normal',
@@ -64,7 +66,9 @@
                 pipeGap: 140,
                 spawnInterval: 1300,
                 hitboxPadding: 5,
-                progressiveIncrease: true
+                progressiveIncrease: true,
+                speedBoostAt50: 1.2,
+                speedBoostAt100: 1.4
             },
             hard: {
                 name: 'Hard',
@@ -75,7 +79,9 @@
                 pipeGap: 115,
                 spawnInterval: 1100,
                 hitboxPadding: 3,
-                progressiveIncrease: true
+                progressiveIncrease: true,
+                speedBoostAt50: 1.25,
+                speedBoostAt100: 1.5
             },
             endless: {
                 name: 'Endless',
@@ -86,7 +92,9 @@
                 pipeGap: 140,
                 spawnInterval: 1300,
                 hitboxPadding: 5,
-                progressiveIncrease: false
+                progressiveIncrease: false,
+                speedBoostAt50: 1.2,
+                speedBoostAt100: 1.4
             }
         };
         
@@ -311,10 +319,20 @@
             });
         }
 
+        function getSpeedMultiplier() {
+            if (score >= 100) {
+                return CONFIG.speedBoostAt100;
+            } else if (score >= 50) {
+                return CONFIG.speedBoostAt50;
+            }
+            return 1.0;
+        }
+
         function updateBird(delta) {
             const dt = delta / 16; // normalize to ~60fps baseline
-            bird.velocity += CONFIG.gravity * dt;
-            bird.y += bird.velocity * dt;
+            const speedMult = getSpeedMultiplier();
+            bird.velocity += CONFIG.gravity * dt * speedMult;
+            bird.y += bird.velocity * dt * speedMult;
             
             // Ground collision
             if (bird.y + bird.height >= GROUND_Y) {
@@ -341,7 +359,10 @@
             if (CONFIG.progressiveIncrease) {
                 speed = CONFIG.basePipeSpeed + Math.min(3, score * 0.08);
             }
-            const move = speed * (delta / 16);
+            
+            // Apply score-based speed multiplier
+            const speedMult = getSpeedMultiplier();
+            const move = speed * speedMult * (delta / 16);
             
             for (let i = pipes.length - 1; i >= 0; i--) {
                 pipes[i].x -= move;
